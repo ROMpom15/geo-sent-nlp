@@ -9,6 +9,13 @@
 
 #     & sources = cnn,bbc
 #     & categories = business,sports
+                    # general - Uncategorized News
+                    # business - Business News
+                    # entertainment - Entertainment News
+                    # health - Health News
+                    # science - Science News
+                    # sports - Sports News
+                    # technology - Technology News
 #     & countries = us,au
 #     & languages = en,-de
 #     & keywords = virus,-corona
