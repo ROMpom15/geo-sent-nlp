@@ -1,9 +1,9 @@
 .:
 README.md
 archive
-code
 data
 dir.txt
+geo-nlp-env.sh
 reports
 requirements.txt
 src
@@ -11,26 +11,34 @@ src
 ./archive:
 data_collect.py
 
-./code:
-
 ./data:
-THUCNews1.7z
 clean
-data
 raw
 
 ./data/clean:
 
-./data/data:
-processed
-raw
-
-./data/data/processed:
-
-./data/data/raw:
-
 ./data/raw:
+CNewSum
 cnn_dailymail
+zip_files
+
+./data/raw/CNewSum:
+__MACOSX
+final
+
+./data/raw/CNewSum/__MACOSX:
+final
+
+./data/raw/CNewSum/__MACOSX/final:
+
+./data/raw/CNewSum/final:
+LICENSE.md
+dev.simple.label.jsonl
+test.simple.anno.label.jsonl
+test.simple.label.jsonl
+test2017.simple.label.jsonl
+test2018.simple.label.jsonl
+train.simple.label.jsonl
 
 ./data/raw/cnn_dailymail:
 test-00000-of-00001.parquet
@@ -38,6 +46,10 @@ train-00000-of-00003.parquet
 train-00001-of-00003.parquet
 train-00002-of-00003.parquet
 validation-00000-of-00001.parquet
+
+./data/raw/zip_files:
+CNewSum_v2.zip
+THUCNews1.7z
 
 ./reports:
 
@@ -48,9 +60,13 @@ sum_ana
 topic_ana
 
 ./src/preproc:
+preproc.py
 
 ./src/sent_ana:
+sentance_analysis.py
 
 ./src/sum_ana:
+summary_analysis.py
 
 ./src/topic_ana:
+topic_analysis.py
