@@ -1,9 +1,12 @@
+https://www.usna.edu/Users/cs/nchamber/courses/nlp/project.html
+
 Team members:
     James Lee
+    Elijah Baquiran
     Conrad Jones
 
 Project Title:
 
 Description:
 
-Data
+Data:
