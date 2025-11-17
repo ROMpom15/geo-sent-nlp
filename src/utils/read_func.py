@@ -7,11 +7,48 @@ import json
 # Directories
 script_dir = os.path.dirname(os.path.abspath(__file__)) # gemini assistance for os
 proj_root_dir = os.path.abspath(os.path.join(script_dir,'../../'))
-cnewsum_data_dir = os.path.join(proj_root_dir,'data','clean','CNewSum') # Use one func for cnewsum 
+cnewsum_eng_data_dir = os.path.join(proj_root_dir,'data','clean','CNewSum') # Use TWO func
+cnewsum_zho_data_dir = os.path.join(proj_root_dir,'data','raw','CNewSum','final')
 cnn_clean_data_dir = os.path.join(proj_root_dir,'data','raw','cnn_dailymail')
 
-#  CNewSum (JSONL) 
-def load_cnewsum_data(type='train', directory=cnewsum_data_dir):
+
+#  CNewSum (JSONL) Chinese
+def load_zho_cnewsum_data(type='train', directory=cnewsum_zho_data_dir):
+    """
+    Loads data from all zho JSONL files of a specific type in a directory.
+    types: ['dev', 'test', 'train'] (default type is train)
+    input: directory path
+    output: list of tuples [(article, id), ...]
+        ALERT: Articles are a list of sentances: i.e. ['澎湃新闻 记者 。',... '长三角 政商 字号 。']
+    """
+    # Look for files ending in .jsonl
+    print(f"type: {type}")
+    all_files = glob.glob(os.path.join(directory, f"{type}*.jsonl")) # gemini query, how to find all files of one type 
+    
+    # get all data in the same list
+    data_list = []
+    for filename in all_files: # https://rowzero.com/blog/open-jsonl-file-format
+        print(f"filename: {filename}")
+        with open(filename, 'r', encoding='utf-8') as f: # gemini query on working with jsonl files.
+            for line in f:
+                try:
+                    # Load each line as a JSON object
+                    record = json.loads(line.strip()) # attempted pandas ref: https://medium.com/@whyamit101/understanding-jsonl-format-11fd86897f1a
+                    # JSON keys: 'article' and 'id'
+                    article = record.get('article')
+                    doc_id = record.get('id')
+                    
+                    if article is not None and doc_id is not None:
+                        data_list.append((article, doc_id))
+                except json.JSONDecodeError as e: # gemini generated this code when debugging. 
+                    print(f"Error decoding JSON in file {filename}: {e}")
+                except AttributeError as e:
+                    print(f"Missing 'article' or 'id' key in a record in file {filename}: {e}")
+                    
+    return data_list
+
+#  CNewSum (JSONL) English ## Under construction
+def load_eng_cnewsum_data(type='train', directory=cnewsum_eng_data_dir):
     """
     Loads data from all JSONL files of a specific type in a directory.
     types: ['dev', 'test', 'train'] (default type is train)
@@ -89,12 +126,23 @@ if __name__ == "__main__":
         first 10 ids: {ids_cnn[0:10]}") # verify unique ids
     
     print("-" * 30) # gemini suggestion
-    # CNewSum
-    print("cnewsum")
-    dl_cns = load_cnewsum_data('test') 
+# zho CNewSum
+    print("Chinese cnewsum")
+    dl_cns = load_zho_cnewsum_data('test') 
 
     ids_cns = [doc_id for art, doc_id in dl_cns]
     print(f"cnewsum: \n \
         count of articles: {len(dl_cns)} \n \
                 arts: {dl_cns[0:2]} \n \
         first 10 ids: {ids_cns[0:10]}")
+    
+    print("-" * 30)
+# eng CNewSum
+    # print("English cnewsum")
+    # dl_cns = load_zho_cnewsum_data('test') 
+
+    # ids_cns = [doc_id for art, doc_id in dl_cns]
+    # print(f"cnewsum: \n \
+    #     count of articles: {len(dl_cns)} \n \
+    #             arts: {dl_cns[0:2]} \n \
+    #     first 10 ids: {ids_cns[0:10]}")

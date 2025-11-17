@@ -1,26 +1,10 @@
+# Must be run on a GPU
+
+# Import
 import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM
 from transformers import LlamaTokenizer
-
-# Load base model and LoRA weights
-model = AutoModelForCausalLM.from_pretrained("haoranxu/ALMA-13B-Pretrain", torch_dtype=torch.float16, device_map="auto")
-model = PeftModel.from_pretrained(model, "haoranxu/ALMA-13B-Pretrain-LoRA")
-tokenizer = LlamaTokenizer.from_pretrained("haoranxu/ALMA-13B-Pretrain", padding_side='left')
-
-# Add the source setence into the prompt template
-prompt="Translate this from Chinese to English:\nChinese: 我爱机器翻译。\nEnglish:"
-input_ids = tokenizer(prompt, return_tensors="pt", padding=True, max_length=40, truncation=True).input_ids.cuda()
-
-# Translation
-with torch.no_grad():
-    generated_ids = model.generate(input_ids=input_ids, num_beams=5, max_new_tokens=20, do_sample=True, temperature=0.6, top_p=0.9)
-outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-print(outputs)
-
-
-# Much of this code came from Gemini's 2.5 flash model. All code was edited
-# Import
 import pandas as pd
 import glob
 import os
@@ -29,31 +13,32 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 proj_root_dir = os.path.abspath(os.path.join(script_dir,'../../'))
 CNewSum_directory = os.path.join(proj_root_dir,'data','clean','CNewSum')
 
-def load_and_prepare_data(CNewSum_directory, text_column, id_column, type='dev'):
-    """Loads data from all CSV files in a directory and formats it for the pipeline."""
-    all_files = glob.glob(os.path.join(CNewSum_directory, f"{type}*.csv"))
-    
-    data_list = []
-    for filename in all_files:
-        df = pd.read_csv(filename)
-        for index, row in df.iterrows(): #iterate through every row
-            data_list.append({
-                'id': row[id_column],
-                'chinese_text': row[text_column]
-            })
-            
-    return data_list
-
-# Example Usage
-# all_articles = load_and_prepare_data('./my_csv_data_folder', 'ChineseArticle', 'ArticleID')
-
 # Constants
-BATCH_SIZE = 16 # Adjust this based on your GPU memory (start low and increase)
+BATCH_SIZE = 16 # Adjustable
 MAX_OUTPUT_TOKENS = 120
 
+# Load base model and LoRA weights
+model = AutoModelForCausalLM.from_pretrained("haoranxu/ALMA-13B-Pretrain", torch_dtype=torch.float16, device_map="auto")
+model = PeftModel.from_pretrained(model, "haoranxu/ALMA-13B-Pretrain-LoRA")
+tokenizer = LlamaTokenizer.from_pretrained("haoranxu/ALMA-13B-Pretrain", padding_side='left')
+
+def test_translate(tokenizer,text_to_translate='我爱机器翻译'):
+    # Add the source setence into the prompt template
+    prompt=f"Translate this from Chinese to English:\nChinese: {text_to_translate}。\nEnglish:"
+    print(prompt)
+    input_ids = tokenizer(prompt, return_tensors="pt", padding=True, max_length=MAX_OUTPUT_TOKENS, truncation=True).input_ids.cuda()
+
+    # Translation
+    with torch.no_grad():
+        generated_ids = model.generate(input_ids=input_ids, num_beams=5, max_new_tokens=MAX_OUTPUT_TOKENS, do_sample=True, temperature=0.6, top_p=0.9)
+    outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+    print(outputs)
+
+# Much of these functions code came from Gemini's 2.5 flash model. All code was edited
+# and understood before implemented. We decided to implement 
 def batch_translate(pipe, all_articles):
     """
-    Translates articles in batches using the Hugging Face pipeline.
+    Translates articles in batches using the ALMA 13B pipeline.
     """
     results = []
     
@@ -99,3 +84,6 @@ def batch_translate(pipe, all_articles):
             })
             
     return results
+
+if __name__ == "__main__":
+    test_translate()
