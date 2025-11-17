@@ -4,9 +4,9 @@ import glob
 
 script_dir = os.path.dirname(os.path.abspath(__file__)) # gemini assistance
 proj_root_dir = os.path.abspath(os.path.join(script_dir,'../../'))
-cnewsum_clean_chinese_data_dir = os.path.join(proj_root_dir,'data','clean','CNewSum')
+cnewsum_clean_chinese_data_dir = os.path.join(proj_root_dir,'data','raw','CNewSum')
 cnewsum_trans_data_dir = os.path.join(proj_root_dir,'data','clean','CNewSum','trans')
-cnn_clean_data_dir = os.path.join(proj_root_dir,'data','clean','cnn_dailymail')
+cnn_clean_data_dir = os.path.join(proj_root_dir,'data','raw','cnn_dailymail')
 
 def load_chinese_cnewsum_data(type='train',directory = cnewsum_clean_chinese_data_dir):
     """
