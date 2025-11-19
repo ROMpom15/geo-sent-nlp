@@ -8,6 +8,7 @@ from transformers import AutoModelForCausalLM
 from transformers import LlamaTokenizer
 import os
 
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 proj_root_dir = os.path.abspath(os.path.join(script_dir,'../../'))
 CNewSum_directory = os.path.join(proj_root_dir,'data','clean','CNewSum')
@@ -37,39 +38,51 @@ def test_translate(tokenizer=tokenizer,text_to_translate='我爱机器翻译'):
 
     # Translation
     with torch.no_grad():
-        generated_ids = model.generate(input_ids=input_ids, num_beams=5, max_new_tokens=MAX_OUTPUT_TOKENS, do_sample=True, temperature=0.6, top_p=0.9)
+        generated_ids = model.generate(input_ids=input_ids, num_beams=5, max_new_tokens=MAX_OUTPUT_TOKENS, return_full_text=False, do_sample=True, temperature=0.6, top_p=0.9)
     outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
     print(outputs)
 
 # Much of these functions code came from Gemini's 2.5 flash model. All code was edited
 # and understood before implemented. We decided to implement 
-def batch_translate(pipe, all_articles):
+def batch_translate(all_articles, tokenizer=tokenizer):
     """
     Translates articles in batches using the ALMA 13B pipeline.
     """
     results = []
     
-    for i in range(0, len(all_articles), BATCH_SIZE):
+    for i in range(0, len(all_articles), BATCH_SIZE): # step through length of article list one batch ata time
         batch = all_articles[i : i + BATCH_SIZE]
         
         # Create a specific prompt for each item in the batch
         batch_prompts = []
-        for item in batch:
-            prompt = (
-                f"Please translate the following Chinese news article to English. "
-                f"Output ONLY the English translation and the ID in this exact format: "
-                f"ID:{item['id']} TRANSLATION: [English Translation]. "
-                f"Article: {item['chinese_text']}"
-            )
-            batch_prompts.append(prompt)
+        for article,id in batch:
+            art_len = len(article)
+            for sentence in article:
+                prompt = (
+                    f"Please translate the following Chinese news article to English. "
+                    f"Output ONLY the English translation and the ID in this exact format: "
+                    f"ID:{id}.{sentence_count} TRANSLATION: [English Translation]. "
+                    f"Article: {sentence}"
+                )
+                batch_prompts.append(prompt)
+                #   # Add the source setence into the prompt template
+                #     prompt=f"Translate this from Chinese to English:\nChinese: {text_to_translate}。\nEnglish:"
+                #     print(prompt)
+                #     input_ids = tokenizer(prompt, return_tensors="pt", padding=True, max_length=MAX_OUTPUT_TOKENS, truncation=True).input_ids.cuda()
 
-        # ⭐️ The optimized pipeline call
-        batch_output = pipe(
-            batch_prompts,
-            max_new_tokens=MAX_OUTPUT_TOKENS,
-            return_full_text=False,
-            do_sample=False
-        )
+                #     # Translation
+                #     with torch.no_grad():
+                #         generated_ids = model.generate(input_ids=input_ids, num_beams=5, max_new_tokens=MAX_OUTPUT_TOKENS, return_full_text=False, do_sample=True, temperature=0.6, top_p=0.9)
+                #     outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+                #     print(outputs)
+            # ⭐️ The optimized pipeline call
+                input_ids = tokenizer( ###############################################################
+                    batch_prompts,
+                    return_tensors="pt",
+                    max_new_tokens=MAX_OUTPUT_TOKENS,
+                    return_full_text=False,
+                    do_sample=False
+                )
 
         # Collect results
         for item, output in zip(batch, batch_output):
