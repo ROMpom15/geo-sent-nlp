@@ -1,2 +1,8 @@
 pandas
 os
+peft
+transformers
+glob
+json
+torch
+sentencepiece

@@ -1,28 +1,35 @@
-# Must be run on a GPU
+# Must be run on a GPU (On a lab machine)
+# https://huggingface.co/haoranxu/ALMA-13B
 
 # Import
 import torch
-from peft import PeftModel
+# from peft import PeftModel
 from transformers import AutoModelForCausalLM
 from transformers import LlamaTokenizer
-import pandas as pd
-import glob
 import os
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 proj_root_dir = os.path.abspath(os.path.join(script_dir,'../../'))
 CNewSum_directory = os.path.join(proj_root_dir,'data','clean','CNewSum')
+# model_path = "~/.cache/huggingface/hub/models--haoranxu--ALMA-13B"
+model_path = "haoranxu/ALMA-13B"
 
 # Constants
 BATCH_SIZE = 16 # Adjustable
 MAX_OUTPUT_TOKENS = 120
 
-# Load base model and LoRA weights
-model = AutoModelForCausalLM.from_pretrained("haoranxu/ALMA-13B-Pretrain", torch_dtype=torch.float16, device_map="auto")
-model = PeftModel.from_pretrained(model, "haoranxu/ALMA-13B-Pretrain-LoRA")
-tokenizer = LlamaTokenizer.from_pretrained("haoranxu/ALMA-13B-Pretrain", padding_side='left')
+# Load base model weights
+model = AutoModelForCausalLM.from_pretrained(
+    "haoranxu/ALMA-13B", 
+    dtype=torch.float16, 
+    device_map="auto",
+    force_download=False,      # <--- This forces a fresh download. Nuclear option
+    local_files_only=True    # <--- Set True for default, talk to Conrad before changing
+)
+# model = PeftModel.from_pretrained(model, "haoranxu/ALMA-13B") # Don't need, already using a fine-tuned model
+tokenizer = LlamaTokenizer.from_pretrained(model_path, padding_side='left')
 
-def test_translate(tokenizer,text_to_translate='我爱机器翻译'):
+def test_translate(tokenizer=tokenizer,text_to_translate='我爱机器翻译'):
     # Add the source setence into the prompt template
     prompt=f"Translate this from Chinese to English:\nChinese: {text_to_translate}。\nEnglish:"
     print(prompt)

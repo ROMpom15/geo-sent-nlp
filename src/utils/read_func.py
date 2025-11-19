@@ -39,7 +39,7 @@ def load_zho_cnewsum_data(type='train', directory=cnewsum_zho_data_dir):
                     doc_id = record.get('id')
                     
                     if article is not None and doc_id is not None:
-                        data_list.append((article, doc_id))
+                        data_list.append((article, f'{filename}_{doc_id}')) # get a unique id for every article
                 except json.JSONDecodeError as e: # gemini generated this code when debugging. 
                     print(f"Error decoding JSON in file {filename}: {e}")
                 except AttributeError as e:
@@ -73,7 +73,7 @@ def load_eng_cnewsum_data(type='train', directory=cnewsum_eng_data_dir):
                     doc_id = record.get('id')
                     
                     if article is not None and doc_id is not None:
-                        data_list.append((article, doc_id))
+                        data_list.append((article, f'{filename}_{doc_id}'))
                 except json.JSONDecodeError as e: # gemini generated this code when debugging. 
                     print(f"Error decoding JSON in file {filename}: {e}")
                 except AttributeError as e:
@@ -104,7 +104,8 @@ def load_cnn_data(type='train', directory=cnn_clean_data_dir):
             if article_col in df.columns and id_col in df.columns: # gemini query for error generation
                 # Select the required columns and convert to a list of tuples
                 # .to_numpy() is generally faster than iterrows()
-                data_list.extend(map(tuple, df[[article_col, id_col]].to_numpy())) # ('article','id') CNN id is text, gemini recommended map
+                df['full_id'] = (f'{filename}_{df[id_col]}')
+                data_list.extend(map(tuple, df[[article_col, 'full_id']].to_numpy())) # ('article','filename_id') CNN id is text, gemini recommended map
                 #print(data_list)
             else:
                 print(f"Skipping file {filename}: Missing '{article_col}' or '{id_col}' columns.") # gemini error code generation.
