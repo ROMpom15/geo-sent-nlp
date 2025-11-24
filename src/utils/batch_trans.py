@@ -7,7 +7,7 @@ import torch
 from transformers import AutoModelForCausalLM
 from transformers import LlamaTokenizer
 import os
-from read_func import *
+import read_func as rf
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -17,8 +17,8 @@ CNewSum_directory = os.path.join(proj_root_dir,'data','clean','CNewSum')
 model_path = "haoranxu/ALMA-13B"
 
 # Constants
-BATCH_SIZE = 16 # Adjustable
-MAX_OUTPUT_TOKENS = 120
+BATCH_SIZE = 16 # Adjustable!!
+MAX_OUTPUT_TOKENS = 256
 
 # Load base model weights
 model = AutoModelForCausalLM.from_pretrained(
@@ -43,66 +43,91 @@ def test_translate(tokenizer=tokenizer,text_to_translate='我爱机器翻译'):
     outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
     print(outputs)
 
-# Much of these functions code came from Gemini's 2.5 flash model. All code was edited
+# Much of these below functions code came from Gemini's 2.5 flash model. All code was edited
 # and understood before implemented. We decided to implement 
-def batch_translate(flat_art, tokenizer=tokenizer):
+def batch_translate(flat_art, model, tokenizer=tokenizer):
     """
     Translates articles in batches using the ALMA 13B pipeline.
 
     input: flattened Chinese articles: [(id1, 0, "sent1"), (id1, 1, "sent2"), ...]
     """
     
-    setup_dir(CNewSum_directory)
+    # Specificy prompt construction for ALMA.
+    prompts = [
+        f"Translate this from Chinese to English:\nChinese: {item['text']}\nEnglish:" 
+        for item in flat_art
+    ] # Generate a list of all the prompts from our flattened Chinese sentances
+
+    # Tokenize
+    inputs = tokenizer(
+        prompts, 
+        return_tensors="pt", 
+        padding=True, 
+        truncation=True, 
+        max_length=512 # shouldn't be a problem. Each flattened sentence is usually <= 200 tokens.
+    ).to(model.device)
+
+    # Inference
+    with torch.no_grad():
+        generated_ids = model.generate(
+            input_ids=inputs.input_ids,
+            attention_mask=inputs.attention_mask,
+            num_beams=5,
+            max_new_tokens=MAX_OUTPUT_TOKENS,
+            do_sample=True,
+            temperature=0.6,
+            top_p=0.9
+        )
+
+    # Decode
+    raw_outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+
+    # Clean/Parse results
+    clean_translations = []
+    for raw, prompt in zip(raw_outputs, prompts):
+        # Logic: Find where the prompt ends and take the rest
+        split_marker = "English:"
+        if split_marker in raw:
+            clean_text = raw.split(split_marker)[-1].strip()
+        else: # HOPEFULLY SHOULDN'T HAPPEN
+            # Fallback: remove prompt string manually
+            print('fallback')
+            clean_text = raw.replace(prompt, "").strip()
+        clean_translations.append(clean_text)
+
+    return clean_translations
+
+def mass_trans(all_articles, model=model, tokenizer=tokenizer, batch_size=BATCH_SIZE, output_dir=CNewSum_directory):
+    """
+    The main function calling all helpers. Generated with Gemini.
+    """
+    # 1. Setup
+    csv_path = rf.setup_csv(CNewSum_directory)
     
-    results = []
-    
-    for i in range(0, len(flat_art), BATCH_SIZE): # step through length of article list one batch ata time
-        batch = flat_art[i : i + BATCH_SIZE]
+    # 2. Prepare Data
+    flat_sentences = rf.flatten_data(all_articles)
+    total = len(flat_sentences)
+    print(f"Starting translation for {total} sentences...")
+
+    # 3. Loop through batches
+    for i in range(0, total, batch_size):
+        # Slice the batch
+        batch_items = flat_sentences[i : i + batch_size]
         
-        # Create a specific prompt for each item in the batch
-        batch_prompts = []
-        for article,id in batch:
-            art_len = len(article)
-            for i in range(art_len):
-                prompt = (
-                    f"Please translate the following Chinese news article to English. "
-                    f"ID:{id}.{i}  "
-                    f"Sentence: {article[i]}"
-                )
-                batch_prompts.append(prompt)
+        # Run Model
+        translations = rf.translate_batch(batch_items, model, tokenizer)
+        
+        # Save Results
+        rf.save_batch(csv_path, batch_items, translations)
+        
+        # Progress bar
+        if (i // batch_size) % 5 == 0:
+            print(f"Processed {min(i + batch_size, total)}/{total}...")
 
-                input_ids = tokenizer(
-                    batch_prompts,
-                    return_tensors="pt",
-                    max_new_tokens=MAX_OUTPUT_TOKENS,
-                    return_full_text=False,
-                    do_sample=False
-                )
-                with torch.no_grad():
-                    generated_ids = model.generate(input_ids=input_ids, num_beams=5, max_new_tokens=MAX_OUTPUT_TOKENS, return_full_text=False, do_sample=True, temperature=0.6, top_p=0.9)
-                outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-                print(outputs)
-
-            # Collect results
-            for item, output in zip(batch, batch_output):
-                # The generated text contains the ID and Translation due to the prompt design
-                generated_text = output[0]['generated_text'].strip()
-                
-                # Simple parsing/cleaning logic (you may need a more robust regex parser)
-                try:
-                    # Assuming the model follows the requested format
-                    translation_start = generated_text.find("TRANSLATION:") + len("TRANSLATION:")
-                    translation = generated_text[translation_start:].strip()
-                except:
-                    translation = generated_text # Fallback to raw text
-
-                results.append({
-                    'id': item['id'],
-                    'original_text': item['chinese_text'],
-                    'translated_text': translation
-                })
-            
-    return results
+    print(f"Job Complete. Results saved to: {csv_path}")
+    return csv_path
 
 if __name__ == "__main__":
-    test_translate()
+    #test_translate()
+    test = rf.load_zho_cnewsum_data(type='train')[0:10]
+    fin_path = mass_trans(test)

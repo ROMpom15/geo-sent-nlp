@@ -12,7 +12,6 @@ cnewsum_eng_data_dir = os.path.join(proj_root_dir,'data','clean','CNewSum') # Us
 cnewsum_zho_data_dir = os.path.join(proj_root_dir,'data','raw','CNewSum','final')
 cnn_clean_data_dir = os.path.join(proj_root_dir,'data','raw','cnn_dailymail')
 
-
 #  CNewSum (JSONL) Chinese
 def load_zho_cnewsum_data(type='train', directory=cnewsum_zho_data_dir):
     """
@@ -20,7 +19,7 @@ def load_zho_cnewsum_data(type='train', directory=cnewsum_zho_data_dir):
     types: ['dev', 'test', 'train'] (default type is train)
     input: directory path
     output: list of tuples [(article, id), ...]
-        ALERT: Articles are a list of sentances: i.e. ['澎湃新闻 记者 。',... '长三角 政商 字号 。']
+        ALERT: Articles are a list of sentences: i.e. ['澎湃新闻 记者 。',... '长三角 政商 字号 。']
     """
     # Look for files ending in .jsonl
     print(f"type: {type}")
@@ -134,6 +133,16 @@ def setup_dir(output_dir, filename="translations.csv"):
         
     return csv_path
 
+# Save batched output
+def save_batch(csv_path, batch_items, translations):
+    """
+    Appends a batch of results to the CSV. Generated with Gemini.
+    """
+    with open(csv_path, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        for item, trans in zip(batch_items, translations): # https://www.geeksforgeeks.org/python/zip-in-python/
+            writer.writerow([item['id'], item['idx'], item['text'], trans])
+
 # Flatten Chinese sentences
 def flatten_sent(chinese_sentence_list):
     """"
@@ -161,7 +170,8 @@ def flatten_sent(chinese_sentence_list):
     print(f"Found {total_sentences} total sentences to translate.")
     return flat_sentence_list
 
-if __name__ == "__main__":
+# Test load all of the different datasets.
+def test_load():
     # CNN
     print("cnn/dailymail")
     dl_cnn = load_cnn_data('test') 
@@ -184,7 +194,7 @@ if __name__ == "__main__":
         first 10 ids: {ids_cns[0:10]}")
     
     print("-" * 30)
-# eng CNewSum
+# eng CNewSum # Don't have translation yet
     # print("English cnewsum")
     # dl_cns = load_zho_cnewsum_data('test') 
 
@@ -193,3 +203,23 @@ if __name__ == "__main__":
     #     count of articles: {len(dl_cns)} \n \
     #             arts: {dl_cns[0:2]} \n \
     #     first 10 ids: {ids_cns[0:10]}")
+
+if __name__ == "__main__":
+    test_load()
+# zho CNewSum
+    print("Chinese cnewsum")
+    dl_cns = load_zho_cnewsum_data('test') 
+
+    ids_cns = [doc_id for art, doc_id in dl_cns]
+    print(f"cnewsum: \n \
+        count of articles: {len(dl_cns)} \n \
+                arts: {dl_cns[0:2]} \n \
+        first 10 ids: {ids_cns[0:10]}")
+    
+    print("-" * 30)
+
+    flat = flatten_sent(dl_cns)
+    print(f"flattened: \n \
+        count of sentences to translate: {len(flat)} \n \
+                arts: {flat[0:2]} \n \
+        first 10 ids: {flat[0:10]}")
