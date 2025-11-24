@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import glob
 import json
+import csv
 
 # Directories
 script_dir = os.path.dirname(os.path.abspath(__file__)) # gemini assistance for os
@@ -114,6 +115,51 @@ def load_cnn_data(type='train', directory=cnn_clean_data_dir):
             print(f"Error reading Parquet file {filename}: {e}")
             
     return data_list
+
+# Setup translation dir struct
+def setup_dir(output_dir, filename="translations.csv"):
+    """
+    Creates the directory and initializes the CSV with headers.
+    Returns the full path to the CSV file. Generated with Gemini.
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    csv_path = os.path.join(output_dir, filename)
+    
+    # 'w' mode overwrites existing file to start fresh
+    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Article_ID', 'Sentence_Index', 'Original_Chinese', 'English_Translation'])
+        
+    return csv_path
+
+# Flatten Chinese sentences
+def flatten_sent(chinese_sentence_list):
+    """"
+    input: a list of chinese news articles tuples.
+        each tuple is the article,id combination.
+        The Chinese news article text is a list of sentances.
+        This function flattens the sentences. Gemini was used to generate and
+        troubleshoot much of this function.
+
+        convert [(["sent1", "sent2"], id1), ...] 
+        into -> [(id1, 0, "sent1"), (id1, 1, "sent2"), ...]
+    """
+    print("Preparing sentences...")
+    flat_sentence_list = []
+    for article_sentences, art_id in chinese_sentence_list:
+        for idx, sentence in enumerate(article_sentences): # https://www.geeksforgeeks.org/python/enumerate-in-python/
+            if sentence.strip(): # Skip empty strings
+                flat_sentence_list.append({
+                    "id": art_id,
+                    "idx": idx,
+                    "text": sentence
+                })
+
+    total_sentences = len(flat_sentence_list)
+    print(f"Found {total_sentences} total sentences to translate.")
+    return flat_sentence_list
 
 if __name__ == "__main__":
     # CNN

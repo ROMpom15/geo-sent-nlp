@@ -7,6 +7,7 @@ import torch
 from transformers import AutoModelForCausalLM
 from transformers import LlamaTokenizer
 import os
+from read_func import *
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -44,64 +45,62 @@ def test_translate(tokenizer=tokenizer,text_to_translate='我爱机器翻译'):
 
 # Much of these functions code came from Gemini's 2.5 flash model. All code was edited
 # and understood before implemented. We decided to implement 
-def batch_translate(all_articles, tokenizer=tokenizer):
+def batch_translate(flat_art, tokenizer=tokenizer):
     """
     Translates articles in batches using the ALMA 13B pipeline.
+
+    input: flattened Chinese articles: [(id1, 0, "sent1"), (id1, 1, "sent2"), ...]
     """
+    
+    setup_dir(CNewSum_directory)
+    
     results = []
     
-    for i in range(0, len(all_articles), BATCH_SIZE): # step through length of article list one batch ata time
-        batch = all_articles[i : i + BATCH_SIZE]
+    for i in range(0, len(flat_art), BATCH_SIZE): # step through length of article list one batch ata time
+        batch = flat_art[i : i + BATCH_SIZE]
         
         # Create a specific prompt for each item in the batch
         batch_prompts = []
         for article,id in batch:
             art_len = len(article)
-            for sentence in article:
+            for i in range(art_len):
                 prompt = (
                     f"Please translate the following Chinese news article to English. "
-                    f"Output ONLY the English translation and the ID in this exact format: "
-                    f"ID:{id}.{sentence_count} TRANSLATION: [English Translation]. "
-                    f"Article: {sentence}"
+                    f"ID:{id}.{i}  "
+                    f"Sentence: {article[i]}"
                 )
                 batch_prompts.append(prompt)
-                #   # Add the source setence into the prompt template
-                #     prompt=f"Translate this from Chinese to English:\nChinese: {text_to_translate}。\nEnglish:"
-                #     print(prompt)
-                #     input_ids = tokenizer(prompt, return_tensors="pt", padding=True, max_length=MAX_OUTPUT_TOKENS, truncation=True).input_ids.cuda()
 
-                #     # Translation
-                #     with torch.no_grad():
-                #         generated_ids = model.generate(input_ids=input_ids, num_beams=5, max_new_tokens=MAX_OUTPUT_TOKENS, return_full_text=False, do_sample=True, temperature=0.6, top_p=0.9)
-                #     outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-                #     print(outputs)
-            # ⭐️ The optimized pipeline call
-                input_ids = tokenizer( ###############################################################
+                input_ids = tokenizer(
                     batch_prompts,
                     return_tensors="pt",
                     max_new_tokens=MAX_OUTPUT_TOKENS,
                     return_full_text=False,
                     do_sample=False
                 )
+                with torch.no_grad():
+                    generated_ids = model.generate(input_ids=input_ids, num_beams=5, max_new_tokens=MAX_OUTPUT_TOKENS, return_full_text=False, do_sample=True, temperature=0.6, top_p=0.9)
+                outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+                print(outputs)
 
-        # Collect results
-        for item, output in zip(batch, batch_output):
-            # The generated text contains the ID and Translation due to the prompt design
-            generated_text = output[0]['generated_text'].strip()
-            
-            # Simple parsing/cleaning logic (you may need a more robust regex parser)
-            try:
-                # Assuming the model follows the requested format
-                translation_start = generated_text.find("TRANSLATION:") + len("TRANSLATION:")
-                translation = generated_text[translation_start:].strip()
-            except:
-                translation = generated_text # Fallback to raw text
+            # Collect results
+            for item, output in zip(batch, batch_output):
+                # The generated text contains the ID and Translation due to the prompt design
+                generated_text = output[0]['generated_text'].strip()
+                
+                # Simple parsing/cleaning logic (you may need a more robust regex parser)
+                try:
+                    # Assuming the model follows the requested format
+                    translation_start = generated_text.find("TRANSLATION:") + len("TRANSLATION:")
+                    translation = generated_text[translation_start:].strip()
+                except:
+                    translation = generated_text # Fallback to raw text
 
-            results.append({
-                'id': item['id'],
-                'original_text': item['chinese_text'],
-                'translated_text': translation
-            })
+                results.append({
+                    'id': item['id'],
+                    'original_text': item['chinese_text'],
+                    'translated_text': translation
+                })
             
     return results
 
