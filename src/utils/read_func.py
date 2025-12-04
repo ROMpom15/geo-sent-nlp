@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import glob
 import json
+import csv
 
 # Directories
 script_dir = os.path.dirname(os.path.abspath(__file__)) # gemini assistance for os
@@ -11,7 +12,6 @@ cnewsum_eng_data_dir = os.path.join(proj_root_dir,'data','clean','CNewSum') # Us
 cnewsum_zho_data_dir = os.path.join(proj_root_dir,'data','raw','CNewSum','final')
 cnn_clean_data_dir = os.path.join(proj_root_dir,'data','raw','cnn_dailymail')
 
-
 #  CNewSum (JSONL) Chinese
 def load_zho_cnewsum_data(type='train', directory=cnewsum_zho_data_dir):
     """
@@ -19,7 +19,7 @@ def load_zho_cnewsum_data(type='train', directory=cnewsum_zho_data_dir):
     types: ['dev', 'test', 'train'] (default type is train)
     input: directory path
     output: list of tuples [(article, id), ...]
-        ALERT: Articles are a list of sentances: i.e. ['澎湃新闻 记者 。',... '长三角 政商 字号 。']
+        ALERT: Articles are a list of sentences: i.e. ['澎湃新闻 记者 。',... '长三角 政商 字号 。']
     """
     # Look for files ending in .jsonl
     print(f"type: {type}")
@@ -115,7 +115,63 @@ def load_cnn_data(type='train', directory=cnn_clean_data_dir):
             
     return data_list
 
-if __name__ == "__main__":
+# Setup translation dir struct
+def setup_dir(output_dir, filename="translations.csv"):
+    """
+    Creates the directory and initializes the CSV with headers.
+    Returns the full path to the CSV file. Generated with Gemini.
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    csv_path = os.path.join(output_dir, filename)
+    
+    # 'w' mode overwrites existing file to start fresh
+    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Article_ID', 'Sentence_Index', 'Original_Chinese', 'English_Translation'])
+        
+    return csv_path
+
+# Save batched output
+def save_batch(csv_path, batch_items, translations):
+    """
+    Appends a batch of results to the CSV. Generated with Gemini.
+    """
+    with open(csv_path, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        for item, trans in zip(batch_items, translations): # https://www.geeksforgeeks.org/python/zip-in-python/
+            writer.writerow([item['id'], item['idx'], item['text'], trans])
+
+# Flatten Chinese sentences
+def flatten_sent(chinese_sentence_list):
+    """"
+    input: a list of chinese news articles tuples.
+        each tuple is the article,id combination.
+        The Chinese news article text is a list of sentances.
+        This function flattens the sentences. Gemini was used to generate and
+        troubleshoot much of this function.
+
+        convert [(["sent1", "sent2"], id1), ...] 
+        into -> [(id1, 0, "sent1"), (id1, 1, "sent2"), ...]
+    """
+    print("Preparing sentences...")
+    flat_sentence_list = []
+    for article_sentences, art_id in chinese_sentence_list:
+        for idx, sentence in enumerate(article_sentences): # https://www.geeksforgeeks.org/python/enumerate-in-python/
+            if sentence.strip(): # Skip empty strings
+                flat_sentence_list.append({
+                    "id": art_id,
+                    "idx": idx,
+                    "text": sentence
+                })
+
+    total_sentences = len(flat_sentence_list)
+    print(f"Found {total_sentences} total sentences to translate.")
+    return flat_sentence_list
+
+# Test load all of the different datasets.
+def test_load():
     # CNN
     print("cnn/dailymail")
     dl_cnn = load_cnn_data('test') 
@@ -138,7 +194,7 @@ if __name__ == "__main__":
         first 10 ids: {ids_cns[0:10]}")
     
     print("-" * 30)
-# eng CNewSum
+# eng CNewSum # Don't have translation yet
     # print("English cnewsum")
     # dl_cns = load_zho_cnewsum_data('test') 
 
@@ -147,3 +203,23 @@ if __name__ == "__main__":
     #     count of articles: {len(dl_cns)} \n \
     #             arts: {dl_cns[0:2]} \n \
     #     first 10 ids: {ids_cns[0:10]}")
+
+if __name__ == "__main__":
+    test_load()
+# zho CNewSum
+    print("Chinese cnewsum")
+    dl_cns = load_zho_cnewsum_data('test') 
+
+    ids_cns = [doc_id for art, doc_id in dl_cns]
+    print(f"cnewsum: \n \
+        count of articles: {len(dl_cns)} \n \
+                arts: {dl_cns[0:2]} \n \
+        first 10 ids: {ids_cns[0:10]}")
+    
+    print("-" * 30)
+
+    flat = flatten_sent(dl_cns)
+    print(f"flattened: \n \
+        count of sentences to translate: {len(flat)} \n \
+                arts: {flat[0:2]} \n \
+        first 10 ids: {flat[0:10]}")
