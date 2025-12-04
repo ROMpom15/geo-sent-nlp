@@ -4,7 +4,7 @@
 # Import
 import torch
 # from peft import PeftModel
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig
 from transformers import LlamaTokenizer
 import os
 import read_func as rf
@@ -17,13 +17,22 @@ CNewSum_directory = os.path.join(proj_root_dir,'data','clean','CNewSum')
 model_path = "haoranxu/ALMA-13B"
 
 # Constants
-BATCH_SIZE = 16 # Adjustable!!
+BATCH_SIZE = 1 # Adjustable!!
 MAX_OUTPUT_TOKENS = 256
+
+# 1. Configure 4-bit quantization
+nf4_config = BitsAndBytesConfig(
+   load_in_4bit=True,
+   bnb_4bit_quant_type="nf4",
+   bnb_4bit_use_double_quant=True,
+   bnb_4bit_compute_dtype=torch.bfloat16
+)
 
 # Load base model weights
 model = AutoModelForCausalLM.from_pretrained(
     "haoranxu/ALMA-13B", 
     dtype=torch.float16, 
+    quantization_config=nf4_config,
     device_map="auto",
     force_download=False,      # <--- This forces a fresh download. Nuclear option
     local_files_only=True    # <--- Set True for default, talk to Conrad before changing
@@ -82,6 +91,11 @@ def batch_translate(flat_art, model, tokenizer=tokenizer):
     # Decode
     raw_outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
+    # --- Clear memory immediately after generation ---
+    del inputs
+    del generated_ids
+    torch.cuda.empty_cache()
+
     # Clean/Parse results
     clean_translations = []
     for raw, prompt in zip(raw_outputs, prompts):
@@ -102,10 +116,10 @@ def mass_trans(all_articles, model=model, tokenizer=tokenizer, batch_size=BATCH_
     The main function calling all helpers. Generated with Gemini.
     """
     # 1. Setup
-    csv_path = rf.setup_csv(CNewSum_directory)
+    csv_path = rf.setup_dir(CNewSum_directory)
     
     # 2. Prepare Data
-    flat_sentences = rf.flatten_data(all_articles)
+    flat_sentences = rf.flatten_sent(all_articles)
     total = len(flat_sentences)
     print(f"Starting translation for {total} sentences...")
 
@@ -115,7 +129,7 @@ def mass_trans(all_articles, model=model, tokenizer=tokenizer, batch_size=BATCH_
         batch_items = flat_sentences[i : i + batch_size]
         
         # Run Model
-        translations = rf.translate_batch(batch_items, model, tokenizer)
+        translations = batch_translate(batch_items, model, tokenizer)
         
         # Save Results
         rf.save_batch(csv_path, batch_items, translations)
@@ -129,5 +143,11 @@ def mass_trans(all_articles, model=model, tokenizer=tokenizer, batch_size=BATCH_
 
 if __name__ == "__main__":
     #test_translate()
-    test = rf.load_zho_cnewsum_data(type='train')[0:10]
-    fin_path = mass_trans(test)
+    # test = rf.load_zho_cnewsum_data(type='train')[0:10]
+    # fin_path = mass_trans(test)
+
+    to_translate = []
+    to_translate.extend(rf.load_zho_cnewsum_data(type='train'))
+    to_translate.extend(rf.load_zho_cnewsum_data(type='dev'))
+    to_translate.extend(rf.load_zho_cnewsum_data(type='test'))
+    fin_path = mass_trans(to_translate)
