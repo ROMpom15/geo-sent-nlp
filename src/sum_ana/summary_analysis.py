@@ -2,7 +2,7 @@
 # this file summarizes topic clusters into a 1-2 sentence overview
 # compares summaries to analyze tone, emphasis, and framing
 # - use lexicon list from lab 4 to identify sentimental words
-# - use word vectors to find objective synonyms
+# https://medium.com/@ivavrtaric/t5-for-text-summarization-in-7-lines-of-code-b665c9e40771
 
 # pip install torch transformers
 # pip install pip-system-certs
