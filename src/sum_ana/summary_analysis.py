@@ -1,5 +1,6 @@
 # Summary Analysis
 # this file summarizes topic clusters into a 1-2 sentence overview
+# 95704
 
 # the t5 code comes from https://medium.com/@ivavrtaric/t5-for-text-summarization-in-7-lines-of-code-b665c9e40771 and adapted to the use of 
 # the NLP project. 
@@ -27,19 +28,27 @@ us_data = us_data_load["train"]
 # print(us_data.column_names)
 # print(us_data[0])
 
+keyword = ""
+key_text = ""
 
-for i in range(len(us_data)):
+while (keyword != "quit"):
+    keyword = input("Enter a keyword to summarize articles about (or type 'quit' to exit): ")
+    if keyword == "quit":
+        break
     
-    # --- ACCESSING THE HIGHLIGHTS COLUMN ---
-    # We access the specific column by its name ['highlights']
-    highlight_text = us_data[i]['highlights']
-    
-    # print(f"\n--- Processing Record {i} ---")
-    # print(f"Original Highlight Text: {highlight_text[:100]}...") # Print first 100 chars
+    for i in range(len(us_data)):
+        if keyword in us_data[i]['article']: 
+            # --- ACCESSING THE HIGHLIGHTS COLUMN ---
+            # We access the specific column by its name ['article']
+            key_text += us_data[i]['article'] + "\n"
+            
+            # print(f"\n--- Processing Record {i} ---")
+            # print(f"Original Highlight Text: {highlight_text[:100]}...") # Print first 100 chars
+        # print(i)
 
     # --- FEEDING IT INTO T5 ---
     # T5 requires the prefix "summarize: " for this task
-    input_text = "summarize: " + highlight_text
+    input_text = "summarize: " + key_text
 
     # Encode inputs
     inputs = tokenizer.encode(
@@ -52,7 +61,7 @@ for i in range(len(us_data)):
     # Generate Output (using your preferred 1-2 sentence settings)
     outputs = model.generate(
         inputs, 
-        min_length=15, 
+        min_length=30, 
         max_length=500, # 50 
         num_beams=5, 
         no_repeat_ngram_size=3, 
@@ -61,7 +70,8 @@ for i in range(len(us_data)):
 
     # Decode and print
     generated_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    print(f"T5 Summary: {generated_summary}")
+    print(f"Summary of \'{keyword}\' in the news: {generated_summary}")
+    key_text = "" # reset key_text for next keyword search (keyword is already reset)
 
 
 
