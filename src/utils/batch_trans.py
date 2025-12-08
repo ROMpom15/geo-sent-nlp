@@ -150,4 +150,4 @@ if __name__ == "__main__":
     to_translate.extend(rf.load_zho_cnewsum_data(type='train'))
     to_translate.extend(rf.load_zho_cnewsum_data(type='dev'))
     to_translate.extend(rf.load_zho_cnewsum_data(type='test'))
-    fin_path = mass_trans(to_translate)
+    fin_path = mass_trans(to_translate[9376:])

@@ -1,0 +1,64 @@
+import pandas as pd
+import os
+import torch
+from transformers import AutoModel
+from numpy.linalg import norm
+
+# Directories
+script_dir = os.path.dirname(os.path.abspath(__file__))
+proj_root_dir = os.path.abspath(os.path.join(script_dir,'../../'))
+CNewSum_directory = os.path.join(proj_root_dir,'data','clean','CNewSum')
+
+# Model
+#https://huggingface.co/jinaai/jina-embeddings-v2-base-zh
+model_path = "/home/mids/m263183/.cache/huggingface/hub/models--jinaai--jina-embeddings-v2-base-zh/snapshots/c1ff9086a89a1123d7b5eff58055a665db4fb4b9"
+cos_sim = lambda a,b: (a @ b.T) / (norm(a)*norm(b))
+model = AutoModel.from_pretrained(model_path, trust_remote_code=True, \
+                                  torch_dtype=torch.bfloat16, local_files_only=True)
+df = pd.read_csv(f'{CNewSum_directory}/translations.csv')
+
+def ret_sent(df):
+    # 2. Sort the DataFrame to ensure sentences are in the correct order
+    df = df.sort_values(by=['Article_ID', 'Sentence_Index'])
+
+    # 3. Group by Article_ID and concatenate the sentences
+    # We use a space (' ') as a separator for English, but often
+    # Chinese sentences are concatenated directly or with a pause/comma.
+    # For simplicity and comparison, a space separation is used here for both.
+    # generated from Gemini.
+    concatenated_df = df.groupby('Article_ID').agg(
+        Full_Chinese=('Original_Chinese', ' '.join),
+        Full_English=('English_Translation', ' '.join)
+    ).reset_index()
+
+    # concatenated_df now has the structure:
+    # Article_ID, Full_Chinese, Full_English
+
+    print(concatenated_df.head())
+    eng = concatenated_df['Full_English'].to_list()
+    zho = concatenated_df['Full_Chinese'].to_list()
+    # print(eng,zho)
+    return(eng,zho)
+
+
+def test(test_sent):
+    embeddings = model.encode(test_sent)
+    return(cos_sim(embeddings[0], embeddings[1]))
+
+if __name__ == "__main__":
+    # test_trans = ['How is the weather today?', '今天天气怎么样?']
+    eng,zho = ret_sent(df)
+    scores = []
+
+    for e_sent,z_sent in zip(eng,zho):
+        res = test([e_sent,z_sent])
+        print(res)
+        scores.append(res)
+
+    with open('scores.txt','a') as f: # https://www.w3schools.com/python/python_file_write.asp
+        f.write(f'avg:{sum(scores)/len(scores)}')
+        f.write(f'len:{len(scores)}')
+
+        f.write(f'***** scores *****\n')
+        for score in scores:
+         f.write(score)
