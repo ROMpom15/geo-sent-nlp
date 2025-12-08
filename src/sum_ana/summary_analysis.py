@@ -10,7 +10,7 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelWithLMHead
 import os
-# from datasets import load_dataset
+from datasets import load_dataset
 import pandas as pd
 
 # Load the model
@@ -44,7 +44,7 @@ while (keyword != "quit"):
     
 
     ''' American Summary '''
-    print (f"Summarizing US articles with {keyword}")
+    print (f"Summarizing US articles with \"{keyword}\"")
     for i in range(len(us_data)):
         if keyword in us_data[i]['article']: # append based on if of keyword in article text
 
@@ -52,7 +52,7 @@ while (keyword != "quit"):
             key_text += us_data[i]['article'] + "\n"
 
     if not key_text:
-        print(f"No US articles with {keyword}")
+        print(f"No US articles with \"{keyword}\"")
         key_text = "N/A"
         us_generated_summary = "N/A"
     else:
@@ -81,7 +81,7 @@ while (keyword != "quit"):
 
 
     ''' Chinese Summary '''
-    print (f"Summarizing Chinese articles with {keyword}")
+    print (f"Summarizing Chinese articles with \"{keyword}\"")
     key_text = "" # reset key_text for Chinese summary generation
 
     for i in range(len(chinese_data)):
@@ -95,7 +95,7 @@ while (keyword != "quit"):
 
 
     if not key_text:
-        print(f"No Chinese articles with {keyword}")
+        print(f"No Chinese articles with \"{keyword}\"")
         key_text = "N/A"
         chinese_generated_summary = "N/A"
     else:
