@@ -10,7 +10,8 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelWithLMHead
 import os
-from datasets import load_dataset
+# from datasets import load_dataset
+import pandas as pd
 
 # Load the model
 model_name = 'google/flan-t5-base'
@@ -23,7 +24,10 @@ us_data_load = load_dataset("parquet", data_files={'train': file_path})
 us_data = us_data_load["train"]
 
 # Load the Chinese data
-
+chinese_csv = "translations.csv" # name of CSV file
+df = pd.read_csv(chinese_csv) # open and read the file
+df = df.sort_values(by=['Article_ID', 'Sentence_Index']) # sort by index number
+chinese_data = df.groupby('Article_ID').agg(Full_English=('English_Translation', ' '.join)).reset_index() # group articles together by index
 
 
 # Initialize variables for user input loop
@@ -40,69 +44,83 @@ while (keyword != "quit"):
     
 
     ''' American Summary '''
-    print ("Summarizing US articles now")
+    print (f"Summarizing US articles with {keyword}")
     for i in range(len(us_data)):
         if keyword in us_data[i]['article']: # append based on if of keyword in article text
 
             # access the specific column by its name ['article'] & add to key_text
             key_text += us_data[i]['article'] + "\n"
-            
-    # T5 requires the prefix "summarize: " 
-    input_text = "Summarize: " + key_text
 
-    # Encode inputs
-    inputs = tokenizer.encode(
-                    input_text,             # actual text to be summarized, begins with "Summarize: "
-                    return_tensors='pt',    # encoded sequence will be returned as a PyTorch tensor object
-                    max_length=512,         # max length is 512 tokens
-                    truncation=True)        # anything longer will be removed
+    if not key_text:
+        print(f"No US articles with {keyword}")
+        key_text = "N/A"
+        us_generated_summary = "N/A"
+    else:
+        # T5 requires the prefix "summarize: " 
+        input_text = "Summarize: " + key_text
 
-    # Generate Output (1-2 sentences)
-    outputs = model.generate(
-                    inputs, 
-                    min_length=30,          # minimum length
-                    max_length=500,         # maximum length
-                    num_beams=5,            # keep track of top 5 possible sentences at a time
-                    no_repeat_ngram_size=3, # N-grams of size three cannot be repeated -> no duplicate 3 word phrases in output
-                    early_stopping=True)    # stop whenever num_beams begin generating <STOP> tokens
-                
+        # Encode inputs
+        inputs = tokenizer.encode(
+                        input_text,             # actual text to be summarized, begins with "Summarize: "
+                        return_tensors='pt',    # encoded sequence will be returned as a PyTorch tensor object
+                        max_length=512,         # max length is 512 tokens
+                        truncation=True)        # anything longer will be removed
 
-    # Decode
-    us_generated_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        # Generate Output (1-2 sentences)
+        outputs = model.generate(
+                        inputs, 
+                        min_length=30,          # minimum length
+                        max_length=500,         # maximum length
+                        num_beams=5,            # keep track of top 5 possible sentences at a time
+                        no_repeat_ngram_size=3, # N-grams of size three cannot be repeated -> no duplicate 3 word phrases in output
+                        early_stopping=True)    # stop whenever num_beams begin generating <STOP> tokens
+                    
+
+        # Decode
+        us_generated_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 
     ''' Chinese Summary '''
-    print ("Summarizing Chinese articles now")
+    print (f"Summarizing Chinese articles with {keyword}")
     key_text = "" # reset key_text for Chinese summary generation
 
     for i in range(len(chinese_data)):
-        if keyword in chinese_data[i]['article']: # append based on if of keyword in article text
+        curr = chinese_data.iloc[i]['Full_English']
+
+        if keyword in str(curr): # append based on if of keyword in article text
 
             # access the specific column by its name ['article'] & add to key_text
-            key_text += chinese_data[i]['article'] + "\n"
+            key_text += str(curr) + "\n"
             
-    # T5 requires the prefix "summarize: " 
-    input_text = "Summarize: " + key_text
 
-    # Encode inputs
-    inputs = tokenizer.encode(
-                    input_text,             # actual text to be summarized, begins with "Summarize: "
-                    return_tensors='pt',    # encoded sequence will be returned as a PyTorch tensor object
-                    max_length=512,         # max length is 512 tokens
-                    truncation=True)        # anything longer will be removed
 
-    # Generate Output (1-2 sentences)
-    outputs = model.generate(
-                    inputs, 
-                    min_length=30,          # minimum length
-                    max_length=500,         # maximum length
-                    num_beams=5,            # keep track of top 5 possible sentences at a time
-                    no_repeat_ngram_size=3, # N-grams of size three cannot be repeated -> no duplicate 3 word phrases in output
-                    early_stopping=True)     # stop whenever num_beams begin generating <STOP> tokens
-    
+    if not key_text:
+        print(f"No Chinese articles with {keyword}")
+        key_text = "N/A"
+        chinese_generated_summary = "N/A"
+    else:
+        # T5 requires the prefix "summarize: " 
+        input_text = "Summarize: " + key_text
 
-    # Decode
-    chinese_generated_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        # Encode inputs
+        inputs = tokenizer.encode(
+                        input_text,             # actual text to be summarized, begins with "Summarize: "
+                        return_tensors='pt',    # encoded sequence will be returned as a PyTorch tensor object
+                        max_length=512,         # max length is 512 tokens
+                        truncation=True)        # anything longer will be removed
+
+        # Generate Output (1-2 sentences)
+        outputs = model.generate(
+                        inputs, 
+                        min_length=30,          # minimum length
+                        max_length=500,         # maximum length
+                        num_beams=5,            # keep track of top 5 possible sentences at a time
+                        no_repeat_ngram_size=3, # N-grams of size three cannot be repeated -> no duplicate 3 word phrases in output
+                        early_stopping=True)     # stop whenever num_beams begin generating <STOP> tokens
+        
+
+        # Decode
+        chinese_generated_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 
     # print American and Chinese summaries
