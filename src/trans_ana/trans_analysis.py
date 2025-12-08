@@ -11,6 +11,7 @@ CNewSum_directory = os.path.join(proj_root_dir,'data','clean','CNewSum')
 
 # Model
 #https://huggingface.co/jinaai/jina-embeddings-v2-base-zh
+# also contained cos function
 model_path = "/home/mids/m263183/.cache/huggingface/hub/models--jinaai--jina-embeddings-v2-base-zh/snapshots/c1ff9086a89a1123d7b5eff58055a665db4fb4b9"
 cos_sim = lambda a,b: (a @ b.T) / (norm(a)*norm(b))
 model = AutoModel.from_pretrained(model_path, trust_remote_code=True, \
@@ -55,10 +56,9 @@ if __name__ == "__main__":
         print(res)
         scores.append(res)
 
-    with open('scores.txt','a') as f: # https://www.w3schools.com/python/python_file_write.asp
-        f.write(f'avg:{sum(scores)/len(scores)}')
-        f.write(f'len:{len(scores)}')
-
-        f.write(f'***** scores *****\n')
+    with open(f'{proj_root_dir}/reports/scores.txt','a') as f: # https://www.w3schools.com/python/python_file_write.asp
+        f.write(f'***** scores *****\n')       
+        f.write(f'avg: {sum(scores)/len(scores)}\n')
+        f.write(f'len: {len(scores)}')
         for score in scores:
          f.write(score)

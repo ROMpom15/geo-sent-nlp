@@ -1,16 +1,16 @@
 # si425project #
 ## Description: ##
-    Our goal is to compare viewpoint differences/sentiment between American and Chinese news outlets. For instance, we will be comparing what kinds of opinions American and Chinese citizens have about the Taiwan Strait, South China Sea, the American and Chinese militaries, American and Chinese navies, shipbuilding in both countries, and economies in both countries. Our general approach to achieving this is to use a news source's data set card to access the contents of the news articles.
+    Our goal is to compare viewpoint differences/sentiment between American and Chinese news outlets. For instance, we compare American and Chinese opinions about the Taiwan Strait, South China Sea, the American and Chinese militaries, American and Chinese navies, shipbuilding in both countries, and economies in both countries. Our general approach to achieving this is to use a news source's data set card to access the contents of the news articles.
 
-    We will then attempt to extract the sentences/paragraphs surrounding the terms/topics listed above and evaluate the perspectives of the respective nationalities. Our sources of data are CNN's DailyMail data set taken from HuggingFace (for English articles) and THUCNews taken from figshare (for Chinese articles).
+    We  then attempt to extract the sentences/paragraphs surrounding the terms/topics listed above and evaluate the perspectives of the respective nationalities. Our sources of data are CNN's DailyMail data set taken from HuggingFace (for English articles) and THUCNews taken from figshare (for Chinese articles).
 
-    This is an interesting topic because it's pretty relevant to the US Navy and Marine Corps and the current geopolitical tensions between the US and China, so it would be cool to analyze what is actually being said on a lower level closer to the general public as opposed to what senior leaders throw at each other. 
+    1. topic analysis src/topic_ana
 
-    1. Sentiment analysis
+        # James
 
-        Compare sentiment distributions (means, variances) across countries and topics.
+    2. Topic-specific linguistic summaries
 
-    2. Topic-specific linguistic associations
+        # Elijah
 
         A user inputs a “hot-button” topic (e.g., South China Sea).
         Using document embeddings and vector search, we extract top co-occurring words and multi-word expressions.
@@ -19,10 +19,7 @@
         Example:
         Chinese articles: defense, territorial waters, sovereignty
         American articles: freedom of navigation, military maneuvers, fire hoses
-
-    3. Summaries
-
-        Use summarization models to generate short (1–2 sentence) summaries per topic cluster.
+         Use summarization models to generate short (1–2 sentence) summaries per topic cluster.
         Compare resulting summaries for tone, emphasis, and framing differences.
 
         Example:
@@ -31,12 +28,34 @@
 
         If we had time and availability, we’d like to find objective statements common to both language clusters and attempt to remove bias or subjective perspectives. 
 
+    3. Translation Analysis src/trans/ana
+        Compare the difference in translated Chinese news articles using cosine similarity.
+        saves avg and count of articles compared to geo-sent-nlp/reports/scores.txt
+       
+       To run: python3 geo-sent-nlp/src/trans_ana/trans_analysis.py
+
 Data:
+    English
     Our CNN DailyMail data will be taken from Hugging Face. There are over 300,000 new articles with associated "highlights" or summary bullet points. The highlights serve as target summaries of the full article. The average article length is relatively long (hundreds of tokens) and highlights are much shorter.
         https://huggingface.co/datasets/abisee/cnn_dailymail/tree/main/3.0.0
-    Our THUCNews data will be taken from figshare. There are 840,000 Chinese news documents organized into 14 classes. It was built from historical RSS feeds of Sina News through filtering. Because the contents are Chinese text, it will be necessary to preprocess and segment words. This data is relatively "clean" in the sense the it has clear category labels, making it a good data set for baseline classification experiments in Chinese. 
-        https://figshare.com/articles/dataset/THUCNews_Chinese_News_Text_Classification_Dataset/28279964?file=51924092
+
+    Chinese - CNewSum
+    The second dataset is called CNewSum, which contains Chinese news summaries and improves on older datasets like LCSTS and THUCNews. It was from major Chinese online news portals such as Sina, Sohu, and NetEase. It was also filtered and cleaned according to human written summary test sets. This data was stored in jsonl format, having over 304,000 articles.
         https://dqwang122.github.io/projects/CNewSum/
-        https://www.kaggle.com/datasets/ceshine/yet-another-chinese-news-dataset
-    Chinese Sentiment Analysis
-    https://huggingface.co/IDEA-CCNL/Erlangshen-Roberta-110M-Sentiment
+
+    # Chinese Sentiment Analysis
+    # https://huggingface.co/IDEA-CCNL/Erlangshen-Roberta-110M-Sentiment
+
+Models:
+    Translation:
+    ALMA 13-b
+    https://huggingface.co/haoranxu/ALMA-13B
+    Implemented in utils/batch_trans.py
+
+    Word-embeddings:
+    jina
+    https://huggingface.co/jinaai/jina-embeddings-v2-base-zh
+    Implemented in /src/trans_ana/trans_analysis.py
+
+
+
