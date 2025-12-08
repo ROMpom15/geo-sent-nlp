@@ -1,14 +1,10 @@
 # Summary Analysis
 # this file summarizes topic clusters into a 1-2 sentence overview
-# 95704
-
-# the t5 code comes from https://medium.com/@ivavrtaric/t5-for-text-summarization-in-7-lines-of-code-b665c9e40771 and adapted to the use of 
-# the NLP project. 
+# the t5 code comes from https://medium.com/@ivavrtaric/t5-for-text-summarization-in-7-lines-of-code-b665c9e40771 and adapted to the use of the NLP project. 
 
 
 # pip install torch transformers
 # pip install pip-system-certs
-# may have to pip install the system certs to get 
 
 # import argparse
 import torch
@@ -44,6 +40,7 @@ while (keyword != "quit"):
     
 
     ''' American Summary '''
+    print ("Summarizing US articles now")
     for i in range(len(us_data)):
         if keyword in us_data[i]['article']: # append based on if of keyword in article text
 
@@ -51,7 +48,7 @@ while (keyword != "quit"):
             key_text += us_data[i]['article'] + "\n"
             
     # T5 requires the prefix "summarize: " 
-    input_text = "summarize: " + key_text
+    input_text = "Summarize: " + key_text
 
     # Encode inputs
     inputs = tokenizer.encode(
@@ -75,6 +72,9 @@ while (keyword != "quit"):
 
 
     ''' Chinese Summary '''
+    print ("Summarizing Chinese articles now")
+    key_text = "" # reset key_text for Chinese summary generation
+
     for i in range(len(chinese_data)):
         if keyword in chinese_data[i]['article']: # append based on if of keyword in article text
 
@@ -82,7 +82,7 @@ while (keyword != "quit"):
             key_text += chinese_data[i]['article'] + "\n"
             
     # T5 requires the prefix "summarize: " 
-    input_text = "summarize: " + key_text
+    input_text = "Summarize: " + key_text
 
     # Encode inputs
     inputs = tokenizer.encode(
