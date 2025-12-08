@@ -92,8 +92,6 @@ while (keyword != "quit"):
             # access the specific column by its name ['article'] & add to key_text
             key_text += str(curr) + "\n"
             
-
-
     if not key_text:
         print(f"No Chinese articles with \"{keyword}\"")
         key_text = "N/A"
@@ -121,7 +119,6 @@ while (keyword != "quit"):
 
         # Decode
         chinese_generated_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
 
     # print American and Chinese summaries
     print(f"Summary of \"{keyword}\" in American news: {us_generated_summary}")
