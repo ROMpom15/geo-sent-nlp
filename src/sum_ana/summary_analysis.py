@@ -16,21 +16,25 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelWithLMHe
 import os
 from datasets import load_dataset
 
-# load the model
+# Load the model
 model_name = 'google/flan-t5-base'
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelWithLMHead.from_pretrained(model_name, return_dict=True)
 
-# load the US data
+# Load the US data
 file_path = os.path.join(os.path.expanduser("~"), "train-00000-of-00003.parquet") # absolute path to the dataset
 us_data_load = load_dataset("parquet", data_files={'train': file_path})
 us_data = us_data_load["train"]
 
-# initialize variables for user input loop
+# Load the Chinese data
+
+
+
+# Initialize variables for user input loop
 keyword = ""
 # key_text = ""
 
-# loop until user types "quit"
+# Loop until user types "quit"
 while (keyword != "quit"):
     key_text = "" # reset key_text for next keyword search (keyword is already reset)
 
@@ -44,8 +48,6 @@ while (keyword != "quit"):
             # access the specific column by its name ['article'] & add to key_text
             key_text += us_data[i]['article'] + "\n"
             
-
-    # --- FEEDING IT INTO T5 ---
     # T5 requires the prefix "summarize: " 
     input_text = "summarize: " + key_text
 
@@ -56,7 +58,7 @@ while (keyword != "quit"):
                     max_length=512,         # max length is 512 tokens
                     truncation=True)        # anything longer will be removed
 
-    # Generate Output (using your preferred 1-2 sentence settings)
+    # Generate Output (1-2 sentences)
     outputs = model.generate(
         inputs, 
         min_length=30,              # minimum length
@@ -66,6 +68,18 @@ while (keyword != "quit"):
         early_stopping=True         # stop whenever num_beams begin generating <STOP> tokens
     )
 
-    # Decode and print
+    # Decode
     generated_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    print(f"Summary of \"{keyword}\" in the news: {generated_summary}")
+
+
+
+
+
+
+
+
+
+
+
+    # print American and Chinese summaries
+    print(f"Summary of \"{keyword}\" in American news: {generated_summary}")
