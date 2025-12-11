@@ -9,7 +9,7 @@ print("Chinese dataset loaded:", df_cn.shape)
 print("US dataset loaded:", df_us.shape)
 
 # COMPARE SENTIMENT AVERAGES
-cn_avg = df_cn["sentiment"].mean()
+cn_avg = df_cn["sentiment"].mean() 
 us_avg = df_us["sentiment"].mean()
 
 print("\n=== AVERAGE SENTIMENT SCORES ===")

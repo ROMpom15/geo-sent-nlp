@@ -6,11 +6,16 @@
 
     1. topic analysis src/topic_ana
 
-        # James
+       Process explained in technical paper. 
+
+       ***TO RUN PROGRAM: python3 <file name>
+
+       us_sentiment_analysis_vader.py
+       chinese_sentiment_analysis.py (does not work, but would have used this with the translation results)
+       compare_sentiments.py 
+       american_sentiment_analysis.py
 
     2. Topic-specific linguistic summaries
-
-        # Elijah
 
         A user inputs a “hot-button” topic (e.g., South China Sea).
         Using document embeddings and vector search, we extract top co-occurring words and multi-word expressions.
@@ -32,7 +37,7 @@
         Compare the difference in translated Chinese news articles using cosine similarity.
         saves avg and count of articles compared to geo-sent-nlp/reports/scores.txt
        
-       To run: python3 geo-sent-nlp/src/trans_ana/trans_analysis.py
+       ***TO RUN PROGRAM: python3 geo-sent-nlp/src/trans_ana/trans_analysis.py
 
 Data:
     English
